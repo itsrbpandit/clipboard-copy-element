@@ -154,6 +154,31 @@ describe('clipboard-copy element', function () {
       assert.equal(text, 'I am a link')
     })
 
+    it('normalizes non-breaking spaces to regular spaces', async function () {
+      const target = document.createElement('div')
+      target.textContent = 'wget -O - https://example.com/hello.sh\u00A0| bash'
+      target.id = 'copy-target'
+      document.body.append(target)
+
+      const button = document.querySelector('clipboard-copy')
+      button.click()
+
+      const text = await whenCopied
+      assert.equal(text, 'wget -O - https://example.com/hello.sh | bash')
+      assert.notInclude(text, '\u00A0')
+    })
+
+    it('normalizes non-breaking spaces from the value attribute', async function () {
+      const button = document.querySelector('clipboard-copy')
+      button.setAttribute('value', 'hello.sh\u00A0| bash')
+
+      button.click()
+
+      const text = await whenCopied
+      assert.equal(text, 'hello.sh | bash')
+      assert.notInclude(text, '\u00A0')
+    })
+
     it('does not copy when disabled', async function () {
       const target = document.createElement('div')
       target.innerHTML = 'Hello world!'
