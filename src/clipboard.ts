@@ -8,11 +8,17 @@ function createNode(text: string): Element {
   return node
 }
 
-export function copyNode(node: Element): Promise<void> {
-  if ('clipboard' in navigator) {
-    return navigator.clipboard.writeText(node.textContent || '')
-  }
+// Some characters, such as the non-breaking space (U+00A0), render
+// identically to a regular space but are copied to the clipboard as their
+// original, non-printable code point. This can be abused to hide malicious
+// content (for example in shell commands) that is invisible in the rendered
+// page. Normalizing these characters ensures the copied text matches what the
+// user sees. See https://hackerone.com/reports/1805414
+function normalizeText(text: string): string {
+  return text.replace(/\u00A0/g, ' ')
+}
 
+function copySelection(node: Element): Promise<void> {
   const selection = getSelection()
   if (selection == null) {
     return Promise.reject(new Error())
@@ -29,9 +35,15 @@ export function copyNode(node: Element): Promise<void> {
   return Promise.resolve()
 }
 
+export function copyNode(node: Element): Promise<void> {
+  return copyText(node.textContent || '')
+}
+
 export function copyText(text: string): Promise<void> {
+  const normalized = normalizeText(text)
+
   if ('clipboard' in navigator) {
-    return navigator.clipboard.writeText(text)
+    return navigator.clipboard.writeText(normalized)
   }
 
   const body = document.body
@@ -39,9 +51,9 @@ export function copyText(text: string): Promise<void> {
     return Promise.reject(new Error())
   }
 
-  const node = createNode(text)
+  const node = createNode(normalized)
   body.appendChild(node)
-  copyNode(node)
+  copySelection(node)
   body.removeChild(node)
   return Promise.resolve()
 }
