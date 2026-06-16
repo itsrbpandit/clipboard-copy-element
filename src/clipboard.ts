@@ -8,14 +8,12 @@ function createNode(text: string): Element {
   return node
 }
 
-// Some characters, such as the non-breaking space (U+00A0), render
-// identically to a regular space but are copied to the clipboard as their
-// original, non-printable code point. This can be abused to hide malicious
-// content (for example in shell commands) that is invisible in the rendered
-// page. Normalizing these characters ensures the copied text matches what the
-// user sees. See https://hackerone.com/reports/1805414
+// Normalize characters that render as a space (or as nothing) so that copied
+// text matches what the user sees.
 function normalizeText(text: string): string {
-  return text.replace(/\u00A0/g, ' ')
+  return text
+    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
+    .replace(/[\u200B-\u200D\u2060\uFEFF\u180E]/g, '')
 }
 
 function copySelection(node: Element): Promise<void> {

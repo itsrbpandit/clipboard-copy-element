@@ -179,6 +179,61 @@ describe('clipboard-copy element', function () {
       assert.notInclude(text, '\u00A0')
     })
 
+    it('normalizes Unicode space-separator characters to regular spaces', async function () {
+      const spaceChars = [
+        '\u00A0',
+        '\u1680',
+        '\u2000',
+        '\u2001',
+        '\u2002',
+        '\u2003',
+        '\u2004',
+        '\u2005',
+        '\u2006',
+        '\u2007',
+        '\u2008',
+        '\u2009',
+        '\u200A',
+        '\u202F',
+        '\u205F',
+        '\u3000',
+      ]
+
+      for (const char of spaceChars) {
+        const button = document.querySelector('clipboard-copy')
+        button.setAttribute('value', `hello.sh${char}| bash`)
+
+        const copied = new Promise(resolve => {
+          document.addEventListener('clipboard-copy', resolve, {once: true})
+        })
+        button.click()
+        await copied
+
+        const text = await navigator.clipboard.readText()
+        assert.equal(text, 'hello.sh | bash', `failed for U+${char.codePointAt(0).toString(16).toUpperCase()}`)
+        assert.notInclude(text, char)
+      }
+    })
+
+    it('strips zero-width and invisible format characters', async function () {
+      const zeroWidthChars = ['\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF', '\u180E']
+
+      for (const char of zeroWidthChars) {
+        const button = document.querySelector('clipboard-copy')
+        button.setAttribute('value', `hello.sh${char}| bash`)
+
+        const copied = new Promise(resolve => {
+          document.addEventListener('clipboard-copy', resolve, {once: true})
+        })
+        button.click()
+        await copied
+
+        const text = await navigator.clipboard.readText()
+        assert.equal(text, 'hello.sh| bash', `failed for U+${char.codePointAt(0).toString(16).toUpperCase()}`)
+        assert.notInclude(text, char)
+      }
+    })
+
     it('does not copy when disabled', async function () {
       const target = document.createElement('div')
       target.innerHTML = 'Hello world!'
